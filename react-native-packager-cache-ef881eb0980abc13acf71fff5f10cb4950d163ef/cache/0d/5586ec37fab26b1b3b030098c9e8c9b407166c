@@ -1,0 +1,225 @@
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _three = require('three');
+
+var THREE = babelHelpers.interopRequireWildcard(_three);
+
+var _extractURL = require('../Utils/extractURL');
+
+var _extractURL2 = babelHelpers.interopRequireDefault(_extractURL);
+
+var _threeGltf2Loader = require('three-gltf2-loader');
+
+var _threeGltf2Loader2 = babelHelpers.interopRequireDefault(_threeGltf2Loader);
+
+var _RefCountCache = require('../Utils/RefCountCache');
+
+var _RefCountCache2 = babelHelpers.interopRequireDefault(_RefCountCache);
+
+(0, _threeGltf2Loader2.default)(THREE);
+
+function recursiveDispose(node) {
+  if (typeof node.dispose === 'function') {
+    node.dispose();
+  }
+  if (node.geometry) {
+    node.geometry.dispose();
+  }
+  if (node.material) {
+    node.material.dispose();
+  }
+  for (var _iterator = node.children, _isArray = Array.isArray(_iterator), _i = 0, _iterator = _isArray ? _iterator : _iterator[typeof Symbol === 'function' ? Symbol.iterator : '@@iterator']();;) {
+    var _ref;
+
+    if (_isArray) {
+      if (_i >= _iterator.length) break;
+      _ref = _iterator[_i++];
+    } else {
+      _i = _iterator.next();
+      if (_i.done) break;
+      _ref = _i.value;
+    }
+
+    var child = _ref;
+
+    recursiveDispose(child);
+  }
+}
+
+var gltfStateCache = new _RefCountCache2.default(function (url, entry) {
+  recursiveDispose(entry.scene);
+});
+var loadList = {};
+
+var GLTF2MeshInstance = function () {
+  function GLTF2MeshInstance(definition, parent) {
+    var _this = this;
+
+    babelHelpers.classCallCheck(this, GLTF2MeshInstance);
+
+    this.url = (0, _extractURL2.default)(definition.gltf2) || '';
+    this.parent = parent;
+    this.mixer = null;
+    this.timeStamp = -1;
+    this.activeAnimations = {};
+    this.allAnimations = {};
+
+    var onLoad = function onLoad(gltf) {
+      if (gltfStateCache.has(_this.url)) {
+        gltfStateCache.addReference(_this.url);
+      } else {}
+
+      _this.scene = gltf.scene;
+
+      _this.mixer = new THREE.AnimationMixer(_this.scene);
+
+      var animations = gltf.animations;
+      if (animations && animations.length) {
+        for (var i = 0; i < animations.length; i++) {
+          var animation = animations[i];
+          _this.allAnimations[animation.name] = _this.mixer.clipAction(animation);
+        }
+      }
+
+      _this.updateAnimation(definition);
+
+      requestAnimationFrame(function () {
+        parent.add(_this.scene);
+      });
+    };
+
+    if (gltfStateCache.has(this.url)) {
+      onLoad(gltfStateCache.get(this.url));
+      return;
+    }
+
+    if (loadList[this.url]) {
+      loadList[this.url].push(onLoad);
+      return;
+    }
+
+    var loader = new THREE.GLTF2Loader();
+    loader.load(this.url, function (gltf) {
+      onLoad(gltf);
+    }, function () {}, function () {
+      console.error('failed to load GLTF', _this.url);
+      delete loadList[_this.url];
+    });
+  }
+
+  babelHelpers.createClass(GLTF2MeshInstance, [{
+    key: 'updateAnimation',
+    value: function updateAnimation(definition) {
+      if (!definition.animations || definition.animations.length === 0) {
+        if (this.mixer) {
+          this.activeAnimations = {};
+          this.mixer.stopAllAction();
+        }
+        return;
+      }
+
+      var newActiveAnimations = {};
+      for (var key in definition.animations) {
+        var animName = 'animation_' + key;
+        newActiveAnimations[animName] = true;
+
+        if (this.allAnimations[animName]) {
+          var anim = this.allAnimations[animName];
+          var params = definition.animations[key];
+          if (params) {
+            anim.fadeIn(params.fadeTime ? params.fadeTime : 0);
+            anim.setEffectiveTimeScale(params.timeScale ? params.timeScale : 1);
+            anim.setEffectiveWeight(params.weight ? params.weight : 1);
+            if (params.syncWith && this.allAnimations[params.syncWith]) {
+              anim.syncWith(this.allAnimations[params.syncWith]);
+            }
+          }
+
+          if (!this.activeAnimations[animName]) {
+            anim.play();
+          }
+        }
+        delete this.activeAnimations[animName];
+      }
+
+      for (var _key in this.activeAnimations) {
+        if (this.allAnimations[_key]) {
+          this.allAnimations[_key].stop();
+        }
+      }
+      this.activeAnimations = newActiveAnimations;
+    }
+  }, {
+    key: 'update',
+    value: function update(definition) {
+      var newUrl = (0, _extractURL2.default)(definition.gltf2) || '';
+      if (newUrl !== this.url) {
+        return false;
+      }
+
+      this.updateAnimation(definition);
+      return true;
+    }
+  }, {
+    key: 'frame',
+    value: function frame(timeStampMS, deltaTimeMS) {
+      if (this.mixer) {
+        this.mixer.update(deltaTimeMS * 0.001);
+      }
+    }
+  }, {
+    key: 'setLit',
+    value: function setLit(flag) {
+      if (__DEV__) {
+        console.log('Lit mode is not supported for GLTF2 models');
+      }
+    }
+  }, {
+    key: 'setTexture',
+    value: function setTexture(value) {
+      if (__DEV__) {
+        console.log('Texture mode is not supported for GLTF2 models');
+      }
+    }
+  }, {
+    key: 'setWireframe',
+    value: function setWireframe(value) {
+      if (__DEV__) {
+        console.log('Wireframe mode is not supported for GLTF2 models');
+      }
+    }
+  }, {
+    key: 'dispose',
+    value: function dispose() {
+      if (this.scene) {
+        gltfStateCache.removeReference(this.url);
+        this.parent.remove(this.scene);
+        delete this.scene;
+      }
+    }
+  }]);
+  return GLTF2MeshInstance;
+}();
+
+var GLTF2ModelLoader = function () {
+  function GLTF2ModelLoader() {
+    babelHelpers.classCallCheck(this, GLTF2ModelLoader);
+  }
+
+  babelHelpers.createClass(GLTF2ModelLoader, [{
+    key: 'canLoad',
+    value: function canLoad(definition) {
+      return definition && definition.hasOwnProperty('gltf2');
+    }
+  }, {
+    key: 'createInstance',
+    value: function createInstance(definition, parent, litMaterial, unlitMaterial) {
+      return new GLTF2MeshInstance(definition, parent);
+    }
+  }]);
+  return GLTF2ModelLoader;
+}();
+
+exports.default = GLTF2ModelLoader;

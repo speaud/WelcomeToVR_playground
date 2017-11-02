@@ -1,0 +1,31 @@
+
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _ThreeShim = require('../ThreeShim');
+
+var _ThreeShim2 = _interopRequireDefault(_ThreeShim);
+
+function _interopRequireDefault(obj) {
+  return obj && obj.__esModule ? obj : { default: obj };
+}
+
+function _classCallCheck(instance, Constructor) {
+  if (!(instance instanceof Constructor)) {
+    throw new TypeError("Cannot call a class as a function");
+  }
+}
+
+var StereoTextureUniforms = function StereoTextureUniforms() {
+  _classCallCheck(this, StereoTextureUniforms);
+
+  this.stereoOffsetRepeat = {
+    type: 'f',
+    value: new _ThreeShim2.default.Vector4(0, 0, 1, 1)
+  };
+};
+
+exports.default = StereoTextureUniforms;

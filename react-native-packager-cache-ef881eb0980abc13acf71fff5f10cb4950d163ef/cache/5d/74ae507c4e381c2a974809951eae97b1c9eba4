@@ -1,0 +1,15 @@
+
+
+'use strict';
+
+var AccessibilityInfo = {
+  fetch: function fetch() {
+    return new Promise(function (resolve, reject) {
+      resolve(false);
+    });
+  },
+  addEventListener: function addEventListener(eventName, handler) {},
+  removeEventListener: function removeEventListener(eventName, handler) {}
+};
+
+module.exports = AccessibilityInfo;

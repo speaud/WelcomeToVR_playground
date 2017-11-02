@@ -1,0 +1,14 @@
+
+'use strict';
+
+var ColorPropType = require('ColorPropType');
+var LayoutPropTypes = require('LayoutPropTypes');
+var TransformPropTypes = require('TransformPropTypes');
+var PropTypes = require('prop-types');
+
+var LayoutAndTransformTintPropTypes = babelHelpers.extends({}, LayoutPropTypes, TransformPropTypes, {
+  tintColor: ColorPropType,
+  opacity: PropTypes.number
+});
+
+module.exports = LayoutAndTransformTintPropTypes;
